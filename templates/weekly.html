@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Weekly') }} · {{ _('AI updates') }}{% endblock %}
+{% block content %}
+<section class="page-head">
+  <h1>{{ _('Weekly summaries') }}</h1>
+  <p class="lede">{{ _('One briefing per week: the stories that mattered across labs, news, regulation and research, with links to the sources.') }}{% if lang != 'en' and digests and not digests[0].translated %} {{ _('Weekly summaries are written in English.') }}{% endif %}</p>
+</section>
+
+{% if not summaries_on %}
+<div class="notice notice-info weekly-note">{{ _('New weekly summaries are written automatically on refresh once AI summaries are on (<code>ANTHROPIC_API_KEY</code>, <code>GROQ_API_KEY</code> or <code>OLLAMA_MODEL</code> in <code>.env</code>). You can also add your own Markdown files to the <code>weekly/</code> folder.') }}</div>
+{% endif %}
+
+{% if digests %}
+<div class="weekly-list">
+  {% for d in digests %}
+  <article class="card weekly-card">
+    <a class="card-link" href="/weekly/{{ d.week }}">
+      <div class="card-body">
+        <div class="card-meta"><span class="src">{{ d.period }}</span><span class="dot" aria-hidden="true">·</span><span>{{ d.week }}</span></div>
+        <h2 class="card-title">{{ d.title }}</h2>
+        {% if d.excerpt %}<p class="card-text">{{ d.excerpt }}</p>{% endif %}
+        <div class="card-foot"><span>{{ _('Read the week →') }}</span></div>
+      </div>
+    </a>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<section class="empty-hero"><p>{{ _('No weekly summaries yet.') }}</p></section>
+{% endif %}
+{% endblock %}

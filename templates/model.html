@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% from "_macros.html" import model_card, article_card %}
+{% block title %}{{ m.name }} · {{ _('AI updates') }}{% endblock %}
+{% block content %}
+<section class="page-head tone-{{ m.tone }}">
+  <div class="card-meta"><a class="src" href="/models?provider={{ m.provider | urlencode }}">{{ m.provider }}</a><span class="dot">·</span><span>{{ _('Released {date}', date=(m.created or m.first_seen) | fmt_date) }}</span>{% if m.is_new %}<span class="badge badge-new">{{ _('New') }}</span>{% endif %}</div>
+  <h1>{{ m.name.split(': ', 1)[-1] }}</h1>
+  <p class="model-id">{{ m.id }}</p>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="tile-label">{{ _('Input price') }}</div><div class="tile-value">{{ m.price_in | fmt_price }}</div><div class="tile-sub">{{ _('per 1M tokens') }}</div></div>
+  <div class="tile"><div class="tile-label">{{ _('Output price') }}</div><div class="tile-value">{{ m.price_out | fmt_price }}</div><div class="tile-sub">{{ _('per 1M tokens') }}</div></div>
+  <div class="tile"><div class="tile-label">{{ _('Context') }}</div><div class="tile-value">{{ m.context_length | fmt_tokens }}</div><div class="tile-sub">{{ _('tokens') }}</div></div>
+  <div class="tile"><div class="tile-label">{{ _('Intelligence index') }}</div><div class="tile-value">{{ m.intelligence | fmt_num }}</div><div class="tile-sub">{{ 'Artificial Analysis' if b else _('not benchmarked') }}</div></div>
+</div>
+
+<div class="panels">
+  <section class="panel panel-wide">
+    <h2 class="panel-title">{{ _('Price history') }}</h2>
+    <p class="muted small">{{ _('USD per 1M tokens. A point is recorded when the model is first seen and whenever its price changes.') }}</p>
+    {% if chart.labels %}
+    <div class="chart-box"><canvas id="price-chart" role="img" aria-label="{{ _('Input and output price history') }}"></canvas></div>
+    <script type="application/json" id="chart-data">{{ chart | tojson }}</script>
+    {% if changes %}
+    <ul class="history-list">{% for c in changes %}<li>{{ _('{date}: input {old_in} → {new_in}, output {old_out} → {new_out}', date=c.recorded_at | fmt_date, old_in=c.old_in | fmt_price, new_in=c.price_in | fmt_price, old_out=c.old_out | fmt_price, new_out=c.price_out | fmt_price) }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% else %}<p class="empty">{{ _('No price history yet.') }}</p>{% endif %}
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">{{ _('Benchmarks') }}</h2>
+    {% if bench %}
+      <p class="muted small">{{ _('Matched to “{name}” by {creator}.', name=b.name, creator=b.creator) }}</p>
+      <ul class="bench-list">
+      {% for r in bench %}
+        <li>
+          <span class="bench-name">{{ r.name }}</span>
+          <span class="bar"><span style="width: {{ '%.1f' | format(r.pct) }}%"></span></span>
+          <span class="bench-val">{{ r.display }}</span>
+        </li>
+      {% endfor %}
+      </ul>
+      <dl class="kv">
+        <div><dt>{{ _('Output speed') }}</dt><dd>{{ b.speed | fmt_num }} tokens/s</dd></div>
+        <div><dt>{{ _('Time to first token') }}</dt><dd>{{ b.ttft | fmt_num(2) }} s</dd></div>
+      </dl>
+      <p class="attribution">{{ _('Benchmark data:') }} <a href="https://artificialanalysis.ai/" target="_blank" rel="noopener">Artificial Analysis</a></p>
+    {% elif benchmarks_on %}
+      <p class="empty">{{ _('No Artificial Analysis benchmark found for this model.') }}</p>
+    {% else %}
+      <p class="empty">{{ _('Benchmarks are not configured (add <code>AA_API_KEY</code> to <code>.env</code>).') }}</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">{{ _('Specs') }}</h2>
+    <dl class="kv">
+      <div><dt>{{ _('Context') }}</dt><dd>{{ m.context_length | fmt_tokens }}</dd></div>
+      <div><dt>{{ _('Max output') }}</dt><dd>{{ m.max_output | fmt_tokens }}</dd></div>
+      <div><dt>{{ _('Cached input') }}</dt><dd>{{ m.price_cached | fmt_price }}{% if m.price_cached is not none and m.price_cached > 0 %} / 1M{% endif %}</dd></div>
+      <div><dt>{{ _('Tokenizer') }}</dt><dd>{{ m.tokenizer or '—' }}</dd></div>
+      <div><dt>{{ _('Input') }}</dt><dd>{% for x in m.in_mod %}<span class="chip-sm">{{ x }}</span>{% else %}—{% endfor %}</dd></div>
+      <div><dt>{{ _('Output') }}</dt><dd>{% for x in m.out_mod %}<span class="chip-sm">{{ x }}</span>{% else %}—{% endfor %}</dd></div>
+    </dl>
+    {% if params %}
+    <h3 class="sub-title">{{ _('Supported features') }}</h3>
+    <div class="mods">{% for p in params %}<span class="chip-sm">{{ p }}</span>{% endfor %}</div>
+    {% endif %}
+  </section>
+
+  {% if m.description %}
+  <section class="panel panel-wide">
+    <h2 class="panel-title">{{ _('About') }}</h2>
+    <div class="description">{% for p in m.description.split('\n\n') %}<p>{{ p }}</p>{% endfor %}</div>
+  </section>
+  {% endif %}
+</div>
+
+{% if news %}
+<section>
+  <h2 class="day-label">{{ _('In the news') }}</h2>
+  <div class="grid grid-3">{% for a in news %}{{ article_card(a) }}{% endfor %}</div>
+</section>
+{% endif %}
+
+{% if more %}
+<section>
+  <h2 class="day-label">{{ _('More from {provider}', provider=m.provider) }}</h2>
+  <div class="grid">{% for x in more %}{{ model_card(x) }}{% endfor %}</div>
+</section>
+{% endif %}
+{% endblock %}
+{% block footer_extra %}{% if bench %}{{ _('Benchmark data from') }} <a href="https://artificialanalysis.ai/" target="_blank" rel="noopener">Artificial Analysis</a>.{% endif %} {{ _('Model data from OpenRouter.') }}{% endblock %}
+{% block scripts %}
+{% if chart.labels %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha512-CQBWl4fJHWbryGE+Pc7UAxWMUMNMWzWxF4SQo9CgkJIN1kx6djDQZjh3Y8SZ1d+6I+1zze6Z7kHXO7q3UyZAWw==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+<script src="/static/chart.js?v=2" defer></script>
+{% endif %}
+{% endblock %}

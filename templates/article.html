@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "_macros.html" import article_card %}
+{% block title %}{{ a.title }} · {{ _('AI updates') }}{% endblock %}
+{% block content %}
+<article class="reader tone-{{ a.tone }}">
+  <div class="reader-meta">
+    <span class="src">{{ a.source }}</span>
+    <span class="dot" aria-hidden="true">·</span>
+    <time datetime="{{ a.when }}">{{ a.when | fmt_date(True) }}</time>
+    {% if a.word_count %}<span class="dot" aria-hidden="true">·</span><span>{{ _('{n} min read', n=a.word_count | read_minutes) }}</span>{% endif %}
+    <span class="badge badge-cat"><span class="cdot" aria-hidden="true"></span>{{ _(a.category) }}</span>
+  </div>
+  <h1 class="reader-title">{{ a.title }}</h1>
+
+  {% if a.image %}
+  <figure class="reader-image"><img src="{{ a.image }}" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" onerror="this.closest('figure').remove()"></figure>
+  {% endif %}
+
+  {% if a.ai_tldr %}
+  <aside class="ai-box" aria-label="{{ _('AI summary') }}">
+    <div class="ai-head"><span class="pill pill-ai">{{ _('AI summary') }}</span></div>
+    <p class="ai-tldr"><strong>{{ _('TL;DR:') }}</strong> {{ a.ai_tldr }}</p>
+    {% if a.points %}<ul class="ai-points">{% for p in a.points %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+    {% if a.ai_why %}<p class="ai-why"><strong>{{ _('Why it matters:') }}</strong> {{ a.ai_why }}</p>{% endif %}
+  </aside>
+  {% endif %}
+
+  <div class="actions">
+    <a class="btn btn-primary" href="{{ a.url }}" target="_blank" rel="noopener noreferrer">{{ _('Read on {source} ↗', source=a.source) }}</a>
+    <a class="btn" href="/">{{ _('Back to briefing') }}</a>
+  </div>
+
+  {% if a.tr_error %}
+  <p class="notice notice-error">{{ _('The translation failed. Please try again later.') }}</p>
+  {% endif %}
+  {% if a.can_translate %}
+  <form class="translate-form" method="post" action="/article/{{ a.id }}/translate?to={{ lang }}" data-translate>
+    <button class="btn" type="submit" data-busy="{{ _('Translating… (about 10–30 s)') }}">{{ _('Translate the article into {language}', language=_(lang_name)) }}</button>
+  </form>
+  {% elif a.translated_text %}
+  <p class="translation-note">
+    {% if a.show_original %}{{ _('Original text.') }} <a href="/article/{{ a.id }}">{{ _('Show the translation') }}</a>
+    {% else %}{{ _('Translated automatically by {model}.', model=a.content_tr_model or 'AI') }} <a href="/article/{{ a.id }}?original=1">{{ _('Show the original') }}</a>{% endif %}
+  </p>
+  {% endif %}
+
+  <div class="prose" {% if a.translated_text and not a.show_original %}lang="{{ lang }}"{% elif a.src_lang %}lang="{{ a.src_lang }}"{% endif %}>
+    {% if a.content %}
+      {% for p in a.content | paragraphs %}<p>{{ p }}</p>{% endfor %}
+    {% else %}
+      {% if a.summary %}<p>{{ a.summary }}</p>{% endif %}
+      <p class="prose-note">
+        {% if a.fulltext_status == 'blocked' %}{{ _('The full text is not available here because {host} blocks automated readers.', host=host) }}
+        {% elif a.fulltext_status == 'skipped' %}{{ _('Only the summary is stored for this source. Read the full text on {source}.', source=a.source) }}
+        {% elif a.fulltext_status == 'failed' %}{{ _('The full text could not be extracted from {host}. Read it on the original site.', host=host) }}
+        {% else %}{{ _('The full text has not been downloaded yet; it will be fetched on a later refresh.') }}{% endif %}
+      </p>
+    {% endif %}
+  </div>
+  <p class="fine">{{ _('Text extracted from {host} for personal reading. All rights belong to the publisher.', host=host) }}</p>
+</article>
+
+{% if related %}
+<section class="related">
+  <h2 class="day-label">{{ _('More in {category}', category=_(a.category)) }}</h2>
+  <div class="grid grid-3">{% for r in related %}{{ article_card(r) }}{% endfor %}</div>
+</section>
+{% endif %}
+{% endblock %}

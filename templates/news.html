@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_macros.html" import article_card %}
+{% block title %}{% if q %}{{ _('Search: {q}', q=q) }} · {% endif %}{{ _('AI updates') }}{% endblock %}
+{% block content %}
+{% if not any_articles %}
+<section class="empty-hero">
+  <h1>{{ _('Your AI briefing') }}</h1>
+  <p>{{ _('Nothing here yet. Click <strong>Refresh now</strong> at the top to load your first briefing.') }}</p>
+  <p class="muted">{{ _('It reads about 20 feeds, downloads full articles and updates model prices. The first run takes a minute or two.') }}</p>
+</section>
+{% else %}
+<section class="page-head">
+  {% if q %}
+  <h1>{{ _('Search results') }}</h1>
+  <p class="lede">{{ _n(total, '{n} story matching “{q}”.', '{n} stories matching “{q}”.', q=q) }} <a href="/">{{ _('Clear search') }}</a></p>
+  {% else %}
+  <h1>{{ _('Your AI briefing') }}</h1>
+  <p class="lede">{{ _n(recent_count, '{n} new story in the last 24 hours', '{n} new stories in the last 24 hours') }}{{ _n(recent_sources, ' across {n} source', ' across {n} sources') }}</p>
+  {% endif %}
+</section>
+
+<div class="filters">
+  <div class="chips" role="list">
+    <a role="listitem" class="chip {{ 'is-active' if not category }}" href="{{ page_url(request, category=None, page=None) }}">{{ _('All') }} <span class="count">{{ all_count }}</span></a>
+    {% for name, n in cats %}
+    <a role="listitem" class="chip tone-{{ tone(name) }} {{ 'is-active' if category == name }}" href="{{ page_url(request, category=name, page=None) }}"><span class="cdot" aria-hidden="true"></span>{{ _(name) }} <span class="count">{{ n }}</span></a>
+    {% endfor %}
+  </div>
+  <form method="get" action="/" class="inline-form">
+    {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+    {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+    <label class="sr-only" for="source">{{ _('Source') }}</label>
+    <select id="source" name="source" class="select" data-autosubmit>
+      <option value="">{{ _('All sources') }}</option>
+      {% for s in sources %}<option value="{{ s.source }}" {{ 'selected' if s.source == source }}>{{ s.source }} ({{ s.n }})</option>{% endfor %}
+    </select>
+    <noscript><button class="btn" type="submit">{{ _('Apply') }}</button></noscript>
+  </form>
+</div>
+
+{% if not feature and not groups %}
+<p class="empty">{{ _('No stories match these filters.') }}</p>
+{% endif %}
+
+{% if feature %}
+<div class="grid">{{ article_card(feature, feature=True, eager=True) }}</div>
+{% endif %}
+
+{% for label, items in groups %}
+<section class="day">
+  <h2 class="day-label">{{ label }}</h2>
+  <div class="grid">
+    {% for a in items %}{{ article_card(a) }}{% endfor %}
+  </div>
+</section>
+{% endfor %}
+
+{% if page > 1 or has_older %}
+<nav class="pager" aria-label="{{ _('Pages') }}">
+  {% if page > 1 %}<a class="btn" href="{{ page_url(request, page=page - 1) }}">{{ _('← Newer stories') }}</a>{% else %}<span></span>{% endif %}
+  {% if has_older %}<a class="btn" href="{{ page_url(request, page=page + 1) }}">{{ _('Older stories →') }}</a>{% endif %}
+</nav>
+{% endif %}
+{% endif %}
+{% endblock %}

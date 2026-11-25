@@ -1,0 +1,62 @@
+{% macro thumb(a, eager=False) -%}
+<div class="thumb tone-{{ a.tone }}">
+  <span class="thumb-label">{{ a.source }}</span>
+  {% if a.image %}<img src="{{ a.image }}" alt="" referrerpolicy="no-referrer" {% if not eager %}loading="lazy"{% endif %} decoding="async" onerror="this.remove()">{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro article_card(a, feature=False, eager=False) -%}
+<article class="card news-card tone-{{ a.tone }}{{ ' feature' if feature }}">
+  <a class="card-link" href="/article/{{ a.id }}">
+    {{ thumb(a, eager) }}
+    <div class="card-body">
+      <div class="card-meta">
+        <span class="src">{{ a.source }}</span>
+        <span class="dot" aria-hidden="true">·</span>
+        <time datetime="{{ a.when }}">{{ a.when | reltime }}</time>
+        {% if a.is_new %}<span class="badge badge-new">{{ _('New') }}</span>{% endif %}
+      </div>
+      <h3 class="card-title">{{ a.title }}</h3>
+      {% if a.blurb %}<p class="card-text">{{ a.blurb }}</p>{% endif %}
+      <div class="card-foot">
+        {% if a.ai_tldr %}<span class="pill pill-ai">{{ _('AI summary') }}</span>{% endif %}
+        {% if a.word_count %}<span>{{ _('{n} min read', n=a.word_count | read_minutes) }}</span>{% endif %}
+        <span class="cat"><span class="cdot" aria-hidden="true"></span>{{ _(a.category) }}</span>
+      </div>
+    </div>
+  </a>
+</article>
+{%- endmacro %}
+
+{% macro model_card(m) -%}
+<article class="card model-card tone-{{ m.tone }}">
+  <a class="card-link" href="/model/{{ m.id }}">
+    <div class="card-body">
+      <div class="card-meta">
+        <span class="src">{{ m.provider }}</span>
+        <span class="dot" aria-hidden="true">·</span>
+        <span>{{ (m.created or m.first_seen) | fmt_short_date }}</span>
+        {% if m.is_new %}<span class="badge badge-new">{{ _('New') }}</span>{% endif %}
+      </div>
+      <h3 class="card-title model-name">{{ m.name.split(': ', 1)[-1] }}</h3>
+      <div class="model-id">{{ m.id }}</div>
+      <dl class="specs">
+        <div><dt>{{ _('Input') }}</dt><dd>{{ m.price_in | fmt_price }}</dd></div>
+        <div><dt>{{ _('Output') }}</dt><dd>{{ m.price_out | fmt_price }}</dd></div>
+        <div><dt>{{ _('Context') }}</dt><dd>{{ m.context_length | fmt_tokens }}</dd></div>
+      </dl>
+      <div class="mods">
+        {% for mod in m.in_mod %}<span class="chip-sm">{{ mod }}</span>{% endfor %}
+        {% if m.out_mod and m.out_mod != ['text'] %}<span class="chip-sm chip-out">→ {{ m.out_mod | join(', ') }}</span>{% endif %}
+      </div>
+      {% if m.intelligence is not none %}
+      <div class="intel" title="Artificial Analysis Intelligence Index">
+        <span class="intel-label">{{ _('Intelligence') }}</span>
+        <span class="bar"><span style="width: {{ '%.1f' | format(m.intel_pct) }}%"></span></span>
+        <span class="intel-val">{{ m.intelligence | fmt_num }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </a>
+</article>
+{%- endmacro %}

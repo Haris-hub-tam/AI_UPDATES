@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="{{ lang or 'en' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="same-origin">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<title>{% block title %}{{ _('AI updates') }}{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css?v=5">
+{% block head %}{% endblock %}
+</head>
+<body data-running="{{ '1' if running else '0' }}"
+      data-t-refreshing="{{ _('Refreshing…') }}" data-t-done="{{ _('Done, reloading…') }}" data-t-starting="{{ _('Starting refresh') }}">
+<a class="skip" href="#main">{{ _('Skip to content') }}</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>{{ _('AI updates') }}</a>
+    <nav class="tabs" aria-label="{{ _('Sections') }}">
+      <a href="/" class="tab {{ 'is-active' if active == 'news' }}" {% if active == 'news' %}aria-current="page"{% endif %}>{{ _('News') }}</a>
+      <a href="/models" class="tab {{ 'is-active' if active == 'models' }}" {% if active == 'models' %}aria-current="page"{% endif %}>{{ _('Models') }}</a>
+      <a href="/weekly" class="tab {{ 'is-active' if active == 'weekly' }}" {% if active == 'weekly' %}aria-current="page"{% endif %}>{{ _('Weekly') }}</a>
+      <a href="/benchmarks" class="tab {{ 'is-active' if active == 'benchmarks' }}" {% if active == 'benchmarks' %}aria-current="page"{% endif %}>{{ _('Benchmarks') }}</a>
+    </nav>
+    <form class="search" action="/" method="get" role="search">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input type="search" name="q" value="{{ q if active == 'news' else '' }}" placeholder="{{ _('Search news') }}" aria-label="{{ _('Search all news') }}">
+    </form>
+    {% set here = request.url.path ~ ('?' ~ request.url.query if request.url.query else '') %}
+    <nav class="lang-switch" aria-label="{{ _('Language') }}">
+      {% for code, name in LANGS.items() %}
+      <a href="/lang/{{ code }}?next={{ here | urlencode }}" hreflang="{{ code }}" lang="{{ code }}" title="{{ name }}"
+         class="{{ 'is-active' if lang == code }}" {% if lang == code %}aria-current="true"{% endif %}>{{ code | upper }}</a>
+      {% endfor %}
+    </nav>
+    <div class="refresh">
+      <form id="refresh-form" action="/refresh?next={{ request.url.path | urlencode }}" method="post">
+        <button type="submit" class="btn btn-primary" id="refresh-btn" {% if running %}disabled{% endif %}>
+          {{ _('Refreshing…') if running else _('Refresh now') }}
+        </button>
+      </form>
+      <div class="refresh-meta">
+        <span id="refresh-progress" class="progress" aria-live="polite">{{ progress }}</span>
+        <span id="updated" class="updated" {% if running %}hidden{% endif %}>
+          {% if last_refresh %}{{ _('Updated {when}', when=last_refresh | reltime) }}{% else %}{{ _('Never updated') }}{% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="notices">
+  {% if show_result %}
+  <div class="notice {{ 'notice-error' if show_result.error else 'notice-ok' }}" role="status">{{ result_text(show_result) }}{% if show_result.duration %} <span class="muted">({{ show_result.duration }} s)</span>{% endif %}</div>
+  {% endif %}
+  {% if failing %}
+  <details class="notice notice-warn">
+    <summary>{{ _n(failing | length, '{n} source failing: {names}', '{n} sources failing: {names}', names=failing | map(attribute='name') | join(', ')) }}</summary>
+    <ul>{% for f in failing %}<li><strong>{{ f.name }}</strong>: {{ f.last_error }}</li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+  {% if not summaries_on and active == 'news' %}
+  <div class="notice notice-info">{{ _('AI summaries are off. Add <code>ANTHROPIC_API_KEY</code>, <code>GROQ_API_KEY</code> or <code>OLLAMA_MODEL</code> to <code>.env</code> to turn them on.') }}</div>
+  {% endif %}
+  {% if not benchmarks_on and active in ('models', 'benchmarks') %}
+  <div class="notice notice-info">{{ _('Benchmarks are off. Add a free <code>AA_API_KEY</code> from Artificial Analysis to <code>.env</code> to load them.') }}</div>
+  {% endif %}
+</div>
+
+<main id="main" class="wrap">
+{% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer wrap">
+  <p>{{ _('Personal AI portal. Article text is extracted for personal reading only; the original belongs to its publisher.') }}
+  {% block footer_extra %}{% endblock %}</p>
+</footer>
+<script src="/static/app.js?v=4" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Benchmarks') }} · {{ _('AI updates') }}{% endblock %}
+{% block content %}
+<section class="page-head">
+  <h1>{{ _('Benchmark leaderboard') }}</h1>
+  <p class="lede">{{ _('Independent evaluations from Artificial Analysis. Speed is median output tokens per second; price is USD per 1M output tokens.') }}</p>
+</section>
+
+{% if not bench_total %}
+<section class="empty-hero">
+  {% if benchmarks_on %}<p>{{ _('No benchmark data yet. Click <strong>Refresh now</strong> to load it.') }}</p>
+  {% else %}<p>{{ _('Benchmarks need a free Artificial Analysis API key. Add <code>AA_API_KEY=…</code> to <code>.env</code>, then click <strong>Refresh now</strong>.') }}</p>{% endif %}
+</section>
+{% else %}
+<div class="filters">
+  <div class="chips">
+    {% for k, label in sort_labels.items() %}
+    <a class="chip {{ 'is-active' if sort == k }}" href="{{ page_url(request, sort=k) }}">{{ _(label) }}</a>
+    {% endfor %}
+  </div>
+  <form method="get" action="/benchmarks" class="inline-form">
+    <input type="hidden" name="sort" value="{{ sort }}">
+    <label class="sr-only" for="bq">{{ _('Search benchmarks') }}</label>
+    <input id="bq" class="input" type="search" name="q" value="{{ q }}" placeholder="{{ _('Search models or creators') }}">
+  </form>
+</div>
+
+{% if items %}
+<div class="board" role="table" aria-label="{{ _('Leaderboard') }}">
+  <div class="board-row board-head" role="row">
+    <span role="columnheader">#</span><span role="columnheader">{{ _('Model') }}</span>
+    <span role="columnheader">{{ _('Intelligence') }}</span><span role="columnheader">{{ _('Coding') }}</span><span role="columnheader">{{ _('Agentic') }}</span>
+    <span role="columnheader" class="num">{{ _('Speed') }}</span><span role="columnheader" class="num">{{ _('Output price') }}</span>
+  </div>
+  {% for r in items %}
+  {% set tag = 'a' if r.model_id else 'div' %}
+  <{{ tag }} class="board-row tone-{{ r.tone }}" role="row" {% if r.model_id %}href="/model/{{ r.model_id }}"{% endif %}>
+    <span class="rank" role="cell">{{ r.rank }}</span>
+    <span class="who" role="cell"><strong>{{ r.name }}</strong><span class="src">{{ r.creator or '' }}</span></span>
+    {% for k in ('intelligence', 'coding', 'agentic') %}
+    <span class="metric" role="cell" data-label="{{ _(k | capitalize) }}">
+      {% if r[k] is not none %}<span class="bar"><span style="width: {{ '%.1f' | format(r[k ~ '_pct']) }}%"></span></span><span class="metric-val">{{ r[k] | fmt_num }}</span>{% else %}<span class="muted">—</span>{% endif %}
+    </span>
+    {% endfor %}
+    <span class="num" role="cell" data-label="{{ _('Speed') }}">{% if r.speed %}{{ r.speed | fmt_num(0) }} t/s{% else %}—{% endif %}</span>
+    <span class="num" role="cell" data-label="{{ _('Output price') }}">{{ r.price_out | fmt_price }}</span>
+  </{{ tag }}>
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty">{{ _('No models match.') }}</p>
+{% endif %}
+{% endif %}
+<p class="attribution big">{{ _('Benchmark data provided by <a href="https://artificialanalysis.ai/" target="_blank" rel="noopener">Artificial Analysis</a>. Rows link to the model page when the model is also listed on OpenRouter.') }}</p>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Not found') }} · {{ _('AI updates') }}{% endblock %}
+{% block content %}
+<section class="empty-hero">
+  <h1>{{ _('Not found') }}</h1>
+  <p>{{ _('This page doesn\'t exist (or was removed after 120 days).') }}</p>
+  <p><a class="btn" href="/">{{ _('Back to briefing') }}</a></p>
+</section>
+{% endblock %}

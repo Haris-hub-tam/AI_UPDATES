@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ d.title }} · {{ _('AI updates') }}{% endblock %}
+{% block content %}
+<article class="reader digest">
+  <div class="reader-meta">
+    <span class="src">{{ _('Weekly summary') }}</span>
+    <span class="dot" aria-hidden="true">·</span>
+    <span>{{ d.period }}</span>
+    <span class="dot" aria-hidden="true">·</span>
+    <span>{{ d.week }}</span>
+  </div>
+  <h1 class="reader-title" lang="{{ 'fr' if d.translated else 'en' }}">{{ d.title }}</h1>
+  <div class="prose digest-body" lang="{{ 'fr' if d.translated else 'en' }}">{{ html }}</div>
+  <p class="fine">{% if d.author %}{{ d.author }}{% endif %}{% if d.written %} · {{ _('written {date}', date=d.written) }}{% endif %}. {{ _('Every item links to its source; check the original before you rely on it.') }}</p>
+  <nav class="actions digest-nav" aria-label="{{ _('Other weeks') }}">
+    {% if older %}<a class="btn" href="/weekly/{{ older }}">← {{ older }}</a>{% endif %}
+    <a class="btn" href="/weekly">{{ _('All weeks') }}</a>
+    {% if newer %}<a class="btn" href="/weekly/{{ newer }}">{{ newer }} →</a>{% endif %}
+  </nav>
+</article>
+{% endblock %}

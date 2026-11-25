@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import model_card %}
+{% block title %}{{ _('Models') }} · {{ _('AI updates') }}{% endblock %}
+{% block content %}
+<section class="page-head">
+  <h1>{{ _('Models &amp; prices') }}</h1>
+  <p class="lede">{{ _('Prices in USD per 1M tokens, from OpenRouter.') }}</p>
+</section>
+
+{% if not stats.n %}
+<section class="empty-hero"><p>{{ _('No models yet. Click <strong>Refresh now</strong> to load models and prices.') }}</p></section>
+{% else %}
+<div class="tiles">
+  <div class="tile"><div class="tile-label">{{ _('Models tracked') }}</div><div class="tile-value">{{ stats.n }}</div></div>
+  <div class="tile"><div class="tile-label">{{ _('Added in last 30 days') }}</div><div class="tile-value">{{ stats.recent or 0 }}</div></div>
+  <div class="tile"><div class="tile-label">{{ _('Free models') }}</div><div class="tile-value">{{ stats.free or 0 }}</div></div>
+  <div class="tile"><div class="tile-label">{{ _('Largest context') }}</div><div class="tile-value">{{ biggest.context_length | fmt_tokens }}</div><div class="tile-sub">{{ biggest.name }}</div></div>
+</div>
+
+{% if changes %}
+<section>
+  <h2 class="day-label">{{ _('Recent price changes') }}</h2>
+  <div class="grid grid-changes">
+    {% for c in changes %}
+    <a class="card change-card tone-{{ c.tone }} {{ 'is-cheaper' if c.cheaper else 'is-pricier' }}" href="/model/{{ c.model_id }}">
+      <div class="card-meta"><span class="src">{{ c.provider }}</span><span class="dot">·</span><span>{{ c.recorded_at | reltime }}</span></div>
+      <div class="change-name">{{ c.name.split(': ', 1)[-1] }}</div>
+      <div class="change-row"><span class="muted">{{ _('In') }}</span> {{ c.old_in | fmt_price }} → <strong>{{ c.price_in | fmt_price }}</strong></div>
+      <div class="change-row"><span class="muted">{{ _('Out') }}</span> {{ c.old_out | fmt_price }} → <strong>{{ c.price_out | fmt_price }}</strong></div>
+      <div class="change-tag">{{ _('Cheaper') if c.cheaper else _('More expensive') }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<form class="filters filter-form" method="get" action="/models">
+  <label class="sr-only" for="mq">{{ _('Search models') }}</label>
+  <input id="mq" class="input" type="search" name="q" value="{{ q }}" placeholder="{{ _('Search models') }}">
+  <label class="sr-only" for="prov">{{ _('Provider') }}</label>
+  <select id="prov" class="select" name="provider" data-autosubmit>
+    <option value="">{{ _('All providers') }}</option>
+    {% for p in providers %}<option value="{{ p.provider }}" {{ 'selected' if p.provider == provider }}>{{ p.provider }} ({{ p.n }})</option>{% endfor %}
+  </select>
+  <label class="sr-only" for="sort">{{ _('Sort') }}</label>
+  <select id="sort" class="select" name="sort" data-autosubmit>
+    {% for k, label in sort_labels.items() %}<option value="{{ k }}" {{ 'selected' if k == sort }}>{{ _(label) }}</option>{% endfor %}
+  </select>
+  <label class="check"><input type="checkbox" name="free" value="1" {{ 'checked' if free }} data-autosubmit> {{ _('Free only') }}</label>
+  <button class="btn" type="submit">{{ _('Apply') }}</button>
+</form>
+<p class="muted count-line">{{ _n(total, '{n} model', '{n} models') }}</p>
+
+{% if cards %}
+<div class="grid">{% for m in cards %}{{ model_card(m) }}{% endfor %}</div>
+{% else %}
+<p class="empty">{{ _('No models match these filters.') }}</p>
+{% endif %}
+
+{% if page > 1 or has_more %}
+<nav class="pager" aria-label="{{ _('Pages') }}">
+  {% if page > 1 %}<a class="btn" href="{{ page_url(request, page=page - 1) }}">{{ _('← Previous') }}</a>{% else %}<span></span>{% endif %}
+  {% if has_more %}<a class="btn" href="{{ page_url(request, page=page + 1) }}">{{ _('Next →') }}</a>{% endif %}
+</nav>
+{% endif %}
+{% endif %}
+{% endblock %}
+{% block footer_extra %}{% if benchmarks_on %}{{ _('Intelligence scores:') }} <a href="https://artificialanalysis.ai/" target="_blank" rel="noopener">Artificial Analysis</a>.{% endif %}{% endblock %}
